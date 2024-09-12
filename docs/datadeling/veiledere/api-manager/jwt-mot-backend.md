@@ -1,23 +1,23 @@
 ---
 description:
-  "Hvordan du kan skjule JWT-autentisering i Gravitee, for eksempel for\
+  "Hvordan du kan setter opp JWT-autentisering i Gravitee, for eksempel for\
   \ Maskinporten, uten at hver API-eier trenger f\xE5 tilgang til n\xF8kkelen."
 title: Backend-autentisering med JWTs
 ---
 
 # Backend-autentisering med JWTs
 
-Hvordan du kan skjule JWT-autentisering i Gravitee, for eksempel for Maskinporten, uten at hver API-eier trenger få tilgang til nøkkelen.
+Hvordan du kan skjule JWT-autentisering i Gravitee, for eksempel for Maskinporten, uten at hver API-eier trenger få tilgang til nøkkelen. Merk at dette er en generell oppskrift. For oppsett av JWT til Maskinporten spesifikt, se [her](https://docs.sikt.no/docs/datadeling/teknisk-plattform/api/maskinporten/#4-konfigurasjons-steg-i-gravitee).
 
 ## Bakgrunn
 
 Flere API-er hos andre institusjoner, bl.a. DFØ, krever autentisering med maskinporten. Andre API kan kreve autentisering med andre Authorization servers. Som oftest er det best om applikasjonen får tilgang og autentiserer direkte mot Authorization serveren, men noen ganger kan det være hensiktsmessig å autentisere API gateway mot API gateway.
 
-DFØ har satt opp API-ene sine i maskinporten slik at man er nødt til å bruke virksomhetssertifikatet til autentisering. Med mange integrasjoner og andre applikasjoner som skal ha tilgang til disse API-ene blir dette sertifikatet lagret mange steder hvis hver applikasjon skal autentisere selv. For å begrense antall steder sertifikatet ligger blir denne autentiseringen heller utført i Gravitee.
+DFØ har satt opp API-ene sine i maskinporten slik at man er nødt til å bruke enten en assymetrisk nøkkel eller et virksomhetssertifikat til autentisering. Med mange integrasjoner og andre applikasjoner som skal ha tilgang til disse API-ene, blir disse hemmelighetene lagret flere steder hvis hver applikasjon skal autentisere selv. For å begrense antall steder hemmeligheter legges blir denne autentiseringen heller utført i Gravitee.
 
 ### Lage JWT i Gravitee
 
-Velg API-et du vil legge til autentisering for. Gå til design i venstre sidemeny, og deretter videre til Policies. Bruk policyen "Generate JWT" for å lage en JWT. Denne kan brukes videre, f.eks. i policyen "Add header" eller "HTTP Callout".
+Velg API'et du vil legge til autentisering for. Gå til design i venstre sidemeny, og deretter videre til Policies. Bruk policyen "Generate JWT" for å lage en JWT. Denne kan brukes videre, f.eks. i policyen "Add header" eller "HTTP Callout".
 
 Generate JWT:
 
@@ -34,13 +34,13 @@ Disse er verdt å merke seg:
 
 ### Bruke JWT til autentisering og motta bearer-token
 
-Dette gjøres med HTTP Callout. Legg inn URL til autentiserings-endepunktet du skal bruke og evt. headere/parametere. Legg ved JWT-en som akkurat ble laget ved å bruke Expression Language-notasjon: ${context.attributes['jwt.generated']}.
+Dette gjøres med HTTP Callout. Legg inn URL til autentiserings-endepunktet du skal bruke og evt. headere/parametere. Legg ved JWT-en som akkurat ble laget ved å bruke Expression Language-notasjon: $\{context.attributes['jwt.generated']}.
 
-F.eks. for å bruke mot maskinporten må du legge ved følgende data: grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${context.attributes['jwt.generated']}.
+F.eks. for å bruke mot maskinporten må du legge ved følgende data: grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=$\{context.attributes['jwt.generated']}.
 
 ### Legge ved token
 
-For å legge på bearer-token mottatt med HTTP Callaout-policyer: i "Transform Headers"-policy, klikk på plusstegnet under add, fyll inn Authorization som "Name" og som "value": Bearer {#context.attributes['token']}.
+For å legge på bearer-token mottatt med HTTP Callaout-policyer: i "Transform Headers"-policy, klikk på plusstegnet under add, fyll inn Authorization som "Name" og som "value": Bearer \{#context.attributes['token']}.
 
 ### Eksempel: Maskinporten som API
 
@@ -83,8 +83,8 @@ I tillegg er de registrert som applikasjoner i API manager. Disse har og fått t
   - HTTP Method: GET (Kan også være POST. Da blir det generert nytt token hver gang. Det skaper unødvendig belastning på maskinporten og er tregt, men gjør feilsøking enklere)
   - URL: [https://gw-XXX.intark.uh-it.no/maskinporten-test/v2?iss=**\<ISSUER\>**&scope=**\<SCOPE\>**](https://gw-XXX.intark.uh-it.no/maskinporten-test/v2?iss=**<ISSUER>**&scope=**<SCOPE>**) (issuer finner du i samarbeidsportalen)
   - Legg til Header X-Gravitee-Api-Key. Verdien er API-nøkkelen fra forrige punkt
-  - Legg til Context variabel med navn = Token og value = {#jsonPath(#calloutResponse.content, '$.access_token')}
-- Dra så policyen Transform Header inn i midten. Under Add/update headers, legg til en med navn Authorization og verdi Bearer {#context.attributes['token']}
+  - Legg til Context variabel med navn = Token og value = \{#jsonPath(#calloutResponse.content, '$.access_token')}
+- Dra så policyen Transform Header inn i midten. Under Add/update headers, legg til en med navn Authorization og verdi Bearer \{#context.attributes['token']}
 
 Ønsker man å sende med multiple scopes til maskinporten så støttes dette, men formatet på strengen med scopes bestemmes utifra hvordan man sender med scopes til maskinporten APIet.
 
